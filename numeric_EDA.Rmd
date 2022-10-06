@@ -1,0 +1,111 @@
+---
+title: "numeric_EDA"
+author: "qz2492"
+date: "2022-10-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+```{r}
+weather_df =  
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USC00519397 = "Waikiki_HA",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10,
+    month = lubridate::floor_date(date, unit = "month")) %>%
+  select(name, id, everything())
+```
+
+## `group_by()`
+
+```{r}
+weather_df %>%
+  group_by(name, month)
+
+```
+
+## `summarize()`
+
+Let's group and then summarize
+
+```{r}
+
+weather_df %>%
+  group_by(name) %>%
+  summarise(
+    n_obs = n()
+  )
+```
+
+can we count in other ways?
+
+```{r}
+
+weather_df %>%
+  count(name, month)
+```
+
+don't use table()
+
+```{r, eval=FALSE}
+
+weather_df %>%
+  pull(month) %>%
+  table()
+```
+
+you can have multiple summaries
+
+```{r}
+
+weather_df %>%
+  group_by(month) %>%
+  summarise(
+    n_obs = n(),
+    n_dist = n_distinct(date)
+  )
+```
+
+
+2x2 tables
+
+```{r}
+weather_df %>% 
+  mutate(
+    cold = case_when(
+      tmax <  5 ~ "cold",
+      tmax >= 5 ~ "not_cold",
+      TRUE      ~ ""
+  )) %>% 
+  filter(name != "Waikiki_HA") %>% 
+  group_by(name, cold) %>% 
+  summarize(count = n()) %>%
+  pivot_wider(
+    names_from = cold,
+    values_from = count
+  )
+```
+
+```{r}
+weather_df %>% 
+  mutate(cold = case_when(
+    tmax <  5 ~ "cold",
+    tmax >= 5 ~ "not_cold",
+    TRUE     ~ ""
+  )) %>% 
+  filter(name != "Waikiki_HA") %>% 
+  janitor::tabyl(name, cold)
+```
+
